@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -39,6 +40,22 @@ public class ExtentService
     @SuppressWarnings("unused")
     private ExtentReports readResolve() {
         return ExtentReportsLoader.INSTANCE;
+    }
+    
+    private static ExtentReports getExtentReports() {
+        return ExtentService.getInstance();
+    }
+    
+    public static void setSystemInfo(String key, String value) {
+    	getExtentReports().setSystemInfo(key, value);
+        }
+    
+    public static void setTestRunnerOutput(List<String> log) {
+    	getExtentReports().setTestRunnerOutput(log);
+    }
+    
+    public static void setTestRunnerOutput(String outputMessage) {
+    	getExtentReports().setTestRunnerOutput(outputMessage);
     }
     
     private static class ExtentReportsLoader {
@@ -254,6 +271,8 @@ public class ExtentService
                 r.loadXMLConfig(String.valueOf(configPath));
             INSTANCE.attachReporter(((ExtentReporter) r));
         }
+        
+        
     }
     
 }
