@@ -475,5 +475,17 @@ public class ExtentCucumberAdapter implements ConcurrentEventListener {
 		stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath, title);
 	}
 	
+	public static synchronized void setSystemInfo(String key, String value) {
+		ExtentService.getInstance().setSystemInfo(key, value);
+        }
+    
+    public static synchronized void setTestRunnerOutput(List<String> log) {
+    	ExtentService.getInstance().setTestRunnerOutput(log);
+    }
+    
+    public static synchronized void setTestRunnerOutput(String outputMessage) {
+    	ExtentService.getInstance().setTestRunnerOutput(outputMessage);
+    }
+	
 	
 }
