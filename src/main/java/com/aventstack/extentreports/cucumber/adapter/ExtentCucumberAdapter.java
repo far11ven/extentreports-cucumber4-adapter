@@ -19,22 +19,15 @@ import com.aventstack.extentreports.MediaEntityBuilder;
 import com.aventstack.extentreports.Status;
 import com.aventstack.extentreports.gherkin.model.Asterisk;
 import com.aventstack.extentreports.markuputils.MarkupHelper;
+import com.aventstack.extentreports.model.service.LogService;
+import com.aventstack.extentreports.model.service.TestService;
 import com.aventstack.extentreports.service.ExtentService;
 
 import cucumber.api.HookTestStep;
 import cucumber.api.PickleStepTestStep;
 import cucumber.api.Result;
 import cucumber.api.TestCase;
-import cucumber.api.event.ConcurrentEventListener;
-import cucumber.api.event.EmbedEvent;
-import cucumber.api.event.EventHandler;
-import cucumber.api.event.EventPublisher;
-import cucumber.api.event.TestCaseStarted;
-import cucumber.api.event.TestRunFinished;
-import cucumber.api.event.TestSourceRead;
-import cucumber.api.event.TestStepFinished;
-import cucumber.api.event.TestStepStarted;
-import cucumber.api.event.WriteEvent;
+import cucumber.api.event.*;
 import cucumber.runtime.CucumberException;
 import gherkin.ast.DataTable;
 import gherkin.ast.DocString;
@@ -47,11 +40,7 @@ import gherkin.ast.Step;
 import gherkin.ast.TableCell;
 import gherkin.ast.TableRow;
 import gherkin.ast.Tag;
-import gherkin.pickles.Argument;
-import gherkin.pickles.PickleCell;
-import gherkin.pickles.PickleRow;
-import gherkin.pickles.PickleString;
-import gherkin.pickles.PickleTable;
+import gherkin.pickles.*;
 
 /**
  * A port of Cucumber-JVM (MIT licensed) HtmlFormatter for Extent Framework
@@ -90,6 +79,41 @@ public class ExtentCucumberAdapter implements ConcurrentEventListener {
 	private ThreadLocal<String> currentFeatureFile = new ThreadLocal<>();
 	private ThreadLocal<ScenarioOutline> currentScenarioOutline = new InheritableThreadLocal<>();
 	private ThreadLocal<Examples> currentExamples = new InheritableThreadLocal<>();
+
+  private synchronized void handleTestStepFinished(TestStepFinished event) {
+        updateResult(event.result);
+  }
+    
+  private synchronized void updateResult(Result result) {
+        switch (result.getStatus().lowerCaseName()) {
+            case "failed":
+                stepTestThreadLocal.get().fail(result.getError());
+                break;
+            case "skipped":
+            case "pending":
+                Boolean currentEndingEventSkipped = stepTestThreadLocal.get().getModel().getLogContext() != null 
+                    && !stepTestThreadLocal.get().getModel().getLogContext().isEmpty()
+                        ? stepTestThreadLocal.get().getModel().getLogContext().getLast().getStatus() == Status.SKIP
+                        : false;
+                if (result.getError() != null) {
+                    stepTestThreadLocal.get().skip(result.getError());
+                } else if (!currentEndingEventSkipped) {
+                    String details = result.getErrorMessage() == null ? "Step skipped" : result.getErrorMessage();
+                    stepTestThreadLocal.get().skip(details);
+                }
+                break;
+            case "passed":
+                if (stepTestThreadLocal.get()!= null && stepTestThreadLocal.get().getModel().getLogContext().isEmpty()) {
+                    stepTestThreadLocal.get().pass("");
+                }
+                if (isHookThreadLocal.get() && !TestService.testHasLog(stepTestThreadLocal.get().getModel()) && !LogService.logHasScreenCapture(stepTestThreadLocal.get().getModel().getLogContext().getFirst())) {
+                    ExtentService.getInstance().removeTest(stepTestThreadLocal.get());
+                }
+                break;
+            default:
+                break;
+        }
+    }
 
 	private EventHandler<TestSourceRead> testSourceReadHandler = new EventHandler<TestSourceRead>() {
 		@Override
@@ -461,31 +485,30 @@ public class ExtentCucumberAdapter implements ConcurrentEventListener {
 		docStringMap.put("value", docString.getContent());
 		return docStringMap;
 	}
-
-	public static synchronized void addStepLog(final String message) {
-		stepTestThreadLocal.get().info(message);
-	}
-
-	public static synchronized void addStepScreenCaptureFromPath(final String imagePath) throws IOException {
-		stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath);
-	}
-
-	public static synchronized void addStepScreenCaptureFromPath(final String imagePath, final String title)
-			throws IOException {
-		stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath, title);
-	}
-	
+  
 	public static synchronized void setSystemInfo(String key, String value) {
 		ExtentService.getInstance().setSystemInfo(key, value);
-        }
+  }
     
-    public static synchronized void setTestRunnerOutput(List<String> log) {
+  public static synchronized void setTestRunnerOutput(List<String> log) {
     	ExtentService.getInstance().setTestRunnerOutput(log);
-    }
+  }
     
-    public static synchronized void setTestRunnerOutput(String outputMessage) {
+  public static synchronized void setTestRunnerOutput(String outputMessage) {
     	ExtentService.getInstance().setTestRunnerOutput(outputMessage);
+  }
+  
+    // the below additions are from PR #33
+    // https://github.com/extent-framework/extentreports-cucumber4-adapter/pull/33
+    public static synchronized void addTestStepLog(String message) {
+        stepTestThreadLocal.get().info(message);
     }
 	
+    public static synchronized void addTestStepScreenCaptureFromPath(String imagePath) throws IOException {
+	    stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath);
+    }
 	
+    public static synchronized void addTestStepScreenCaptureFromPath(String imagePath, String title) throws IOException {
+	    stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath, title);
+    }
 }
