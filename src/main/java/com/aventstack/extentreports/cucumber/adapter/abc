@@ -43,7 +43,7 @@ import gherkin.ast.Tag;
 import gherkin.pickles.*;
 
 /**
- * A port of Cucumber-JVM (MIT licensed) HtmlFormatter for Extent Framework 
+ * A port of Cucumber-JVM (MIT licensed) HtmlFormatter for Extent Framework
  * Original source: https://github.com/cucumber/cucumber-jvm/blob/master/core/src/main/java/cucumber/runtime/formatter/HTMLFormatter.java
  *
  */
@@ -52,7 +52,7 @@ public class ExtentCucumberAdapter
 
     private static final String SCREENSHOT_DIR_PROPERTY = "screenshot.dir";
     private static final String SCREENSHOT_REL_PATH_PROPERTY = "screenshot.rel.path";
-    
+
     private static Map<String, ExtentTest> featureMap = new ConcurrentHashMap<>();
     private static ThreadLocal<ExtentTest> featureTestThreadLocal = new InheritableThreadLocal<>();
     private static Map<String, ExtentTest> scenarioOutlineMap = new ConcurrentHashMap<>();
@@ -60,10 +60,10 @@ public class ExtentCucumberAdapter
     private static ThreadLocal<ExtentTest> scenarioThreadLocal = new InheritableThreadLocal<>();
     private static ThreadLocal<Boolean> isHookThreadLocal = new InheritableThreadLocal<>();
     private static ThreadLocal<ExtentTest> stepTestThreadLocal = new InheritableThreadLocal<>();
-    
+
     private String screenshotDir;
     private String screenshotRelPath;
-    
+
     @SuppressWarnings("serial")
     private static final Map<String, String> MIME_TYPES_EXTENSIONS = new HashMap<String, String>() {
         {
@@ -75,15 +75,15 @@ public class ExtentCucumberAdapter
             put("video/ogg", "ogg");
         }
     };
-    
+
     private static final AtomicInteger EMBEDDED_INT = new AtomicInteger(0);
-    
+
     private final TestSourcesModel testSources = new TestSourcesModel();
 
     private ThreadLocal<String> currentFeatureFile = new ThreadLocal<>();
     private ThreadLocal<ScenarioOutline> currentScenarioOutline = new InheritableThreadLocal<>();
     private ThreadLocal<Examples> currentExamples = new InheritableThreadLocal<>();
-    
+
     private EventHandler<TestSourceRead> testSourceReadHandler = new EventHandler<TestSourceRead>() {
         @Override
         public void receive(TestSourceRead event) {
@@ -155,18 +155,18 @@ public class ExtentCucumberAdapter
         handleStartOfFeature(event.testCase);
         handleScenarioOutline(event.testCase);
         createTestCase(event.testCase);
-        if (testSources.hasBackground(currentFeatureFile.get(), event.testCase.getLine())) { 
+        if (testSources.hasBackground(currentFeatureFile.get(), event.testCase.getLine())) {
             // background
         }
     }
 
     private synchronized void handleTestStepStarted(TestStepStarted event) {
         isHookThreadLocal.set(false);
-        
+
         if (event.testStep instanceof HookTestStep) {
             isHookThreadLocal.set(true);
         }
-        
+
         if (event.testStep instanceof PickleStepTestStep) {
             PickleStepTestStep testStep = (PickleStepTestStep) event.testStep;
             createTestStep(testStep);
@@ -176,7 +176,7 @@ public class ExtentCucumberAdapter
     private synchronized void handleTestStepFinished(TestStepFinished event) {
         updateResult(event.result);
     }
-    
+
     private synchronized void updateResult(Result result) {
         switch (result.getStatus().lowerCaseName()) {
             case "failed":
@@ -184,7 +184,7 @@ public class ExtentCucumberAdapter
                 break;
             case "skipped":
             case "pending":
-                Boolean currentEndingEventSkipped = stepTestThreadLocal.get().getModel().getLogContext() != null 
+                Boolean currentEndingEventSkipped = stepTestThreadLocal.get().getModel().getLogContext() != null
                     && !stepTestThreadLocal.get().getModel().getLogContext().isEmpty()
                         ? stepTestThreadLocal.get().getModel().getLogContext().getLast().getStatus() == Status.SKIP
                         : false;
@@ -232,7 +232,7 @@ public class ExtentCucumberAdapter
             }
         }
     }
-    
+
     private static void writeBytesToURL(byte[] buf, URL url) throws IOException {
         OutputStream out = createReportFileOutputStream(url);
         try {
@@ -241,7 +241,7 @@ public class ExtentCucumberAdapter
             throw new IOException("Unable to write to report file item: ", e);
         }
     }
-    
+
     private static OutputStream createReportFileOutputStream(URL url) {
         try {
             return new URLOutputStream(url);
@@ -249,7 +249,7 @@ public class ExtentCucumberAdapter
             throw new CucumberException(e);
         }
     }
-    
+
     private URL toUrl(String fileName) {
         try {
             URL url = Paths.get(screenshotDir, fileName).toUri().toURL();
@@ -259,7 +259,7 @@ public class ExtentCucumberAdapter
         }
     }
 
-    private void handleWrite(WriteEvent event) { 
+    private void handleWrite(WriteEvent event) {
         String text = event.text;
         if (text != null && !text.isEmpty()) {
             stepTestThreadLocal.get().info(text);
@@ -283,7 +283,7 @@ public class ExtentCucumberAdapter
             if (featureMap.containsKey(feature.getName())) {
                 featureTestThreadLocal.set(featureMap.get(feature.getName()));
                 return;
-            }            
+            }
             if (featureTestThreadLocal.get() != null && featureTestThreadLocal.get().getModel().getName().equals(feature.getName())) {
                 return;
             }
@@ -348,7 +348,7 @@ public class ExtentCucumberAdapter
                 if (argument instanceof DocString) {
                     createDocStringMap((DocString)argument);
                 } else if (argument instanceof DataTable) {
-                    
+
                 }
             }
         }
@@ -372,7 +372,7 @@ public class ExtentCucumberAdapter
         markup = scenarioOutlineThreadLocal.get().getModel().getDescription() + markup;
         scenarioOutlineThreadLocal.get().getModel().setDescription(markup);
     }
-    
+
     private String[][] getTable(List<TableRow> rows) {
         String data[][] = null;
         int rowSize = rows.size();
@@ -409,7 +409,7 @@ public class ExtentCucumberAdapter
         if (astNode != null) {
             Step step = (Step) astNode.node;
             try {
-                String name = stepName == null || stepName.isEmpty() 
+                String name = stepName == null || stepName.isEmpty()
                         ? step.getText().replace("<", "&lt;").replace(">", "&gt;")
                         : stepName;
                 ExtentTest t = scenarioThreadLocal.get()
@@ -429,7 +429,7 @@ public class ExtentCucumberAdapter
             }
         }
     }
-    
+
     private String[][] getPickleTable(List<PickleRow> rows) {
         String data[][] = null;
         int rowSize = rows.size();
@@ -453,32 +453,20 @@ public class ExtentCucumberAdapter
         return docStringMap;
     }
 
-	public static synchronized void setSystemInfo(String key, String value) {
-		ExtentService.getInstance().setSystemInfo(key, value);
-	}
-
-	public static synchronized void setTestRunnerOutput(List<String> log) {
-		ExtentService.getInstance().setTestRunnerOutput(log);
-	}
-
-	public static synchronized void setTestRunnerOutput(String outputMessage) {
-		ExtentService.getInstance().setTestRunnerOutput(outputMessage);
-	}
-
     // the below additions are from PR #33
     // https://github.com/extent-framework/extentreports-cucumber4-adapter/pull/33
     public static synchronized void addTestStepLog(String message) {
         stepTestThreadLocal.get().info(message);
     }
-	
+
     public static synchronized void addTestStepScreenCaptureFromPath(String imagePath) throws IOException {
 	    stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath);
     }
-	
+
     public static synchronized void addTestStepScreenCaptureFromPath(String imagePath, String title) throws IOException {
 	    stepTestThreadLocal.get().addScreenCaptureFromPath(imagePath, title);
     }
-    
+
     public static ExtentTest getCurrentStep() {
     	return stepTestThreadLocal.get();
     }
